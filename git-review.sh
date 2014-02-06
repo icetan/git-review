@@ -1,12 +1,17 @@
 #!/bin/bash
 
-usage() { echo "Usage: $0 [-al] [-m <annotation message>] [review id]" 1>&2; exit 1; }
+PREFIX="review"
+
+usage() {
+  echo "Usage: $0 [-ld] [-m <annotation message>] [review id] [ref]" 1>&2
+  exit 1
+}
 
 # Setup args
-while getopts "alm:" opt; do
+while getopts "ldm:" opt; do
 case $opt in
-  a) annotate=1;;
-  l) list=1;;
+  l) list=true;;
+  d) dry=true;;
   m) message=$OPTARG;;
   *) usage
 esac
@@ -14,17 +19,30 @@ done
 
 ARGS=(${@:$OPTIND})
 
-prefix="review"
-review_id=${ARGS[0]}
-[ "$review_id" ] && prefix="review-$review_id"
+id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
+[ "$id" == "-" ] && id=""
+ref="${ARGS[1]}"
 
 git fetch --tags || exit 1
 
-if (( $list )); then
-  git tag -n -l $prefix-\*
+if [ "$list" ]; then
+  [ ! "$id" ] && id="$id*"
+  git tag -n -l $PREFIX-$id $PREFIX-${id}.\*
 else
-  (( $annotate )) && annotate_flag="-a"
-  [ "$message" ] && annotate_flag="-a -m \"$message\""
-  export RTAG=$prefix-$(expr 0$(git tag -l | sed -n "s/$prefix-//p"| sort -n | tail -n1) + 1)
-  git tag $annotate_flag $RTAG && git push --tags && echo $RTAG
+  if ([ "$id" ] && [ ! "$(git tag -l $PREFIX-$id)" ]); then
+    rtag=$PREFIX-$id
+  else
+    [ "$id" ] && id="${id}."
+    rtag=$PREFIX-$id$(expr 0$(git tag -l $PREFIX-$id\* | sed -n "s/^$PREFIX-$id\([0-9]*\)$/\1/p" | sort -n | tail -n1) + 1)
+  fi
+
+  if [ ! "$dry" ]; then
+    if [ "$message" ]; then
+      git tag -a -m "$message" $rtag $ref
+    else
+      git tag -a $rtag $ref
+    fi
+    ([ "$?" == "0" ] && git push --tags) || exit 2
+  fi
+  echo $rtag
 fi
