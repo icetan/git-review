@@ -8,10 +8,11 @@ usage() {
 }
 
 # Setup args
-while getopts "ldm:" opt; do
+while getopts "ldcm:" opt; do
 case $opt in
   l) list=true;;
   d) dry=true;;
+  c) close=true;;
   m) message=$OPTARG;;
   *) usage
 esac
@@ -29,7 +30,11 @@ if [ "$list" ]; then
   [ ! "$id" ] && id="$id*"
   git tag -n -l $PREFIX-$id $PREFIX-${id}.\*
 else
-  if ([ "$id" ] && [ ! "$(git tag -l $PREFIX-$id)" ]); then
+  if [ "$close" ]; then
+    [ ! "$id" ] && echo "You need to supply an ID to close a review" 1>&2 && exit 10
+    [ ! "$(git tag -l $PREFIX-$id)" ] && echo "ID supplied does not exist" 1>&2 && exit 11
+    rtag=$PREFIX-$id-closed
+  elif ([ "$id" ] && [ ! "$(git tag -l $PREFIX-$id)" ]); then
     rtag=$PREFIX-$id
   else
     [ "$id" ] && id="${id}."
