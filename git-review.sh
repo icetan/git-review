@@ -8,11 +8,12 @@ usage() {
 }
 
 # Setup args
-while getopts "ldcm:" opt; do
+while getopts "ldcvm:" opt; do
 case $opt in
   l) list=true;;
   d) dry=true;;
   c) close=true;;
+  v) verbose=true;;
   m) message=$OPTARG;;
   *) usage
 esac
@@ -23,12 +24,14 @@ ARGS=(${@:$OPTIND})
 id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
 [ "$id" == "-" ] && id=""
 ref="${ARGS[1]}"
+exclude="^$"
 
 git fetch --tags || exit 1
 
 if [ "$list" ]; then
   [ ! "$id" ] && id="$id*"
-  git tag -n -l $PREFIX-$id $PREFIX-${id}.\*
+  [ ! "$verbose" ] && exclude="$(git tag -l $PREFIX-\*-closed | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
+  git tag -n -l $PREFIX-$id $PREFIX-${id}.\* | grep -vE "($exclude)"
 else
   if [ "$close" ]; then
     [ ! "$id" ] && echo "You need to supply an ID to close a review" 1>&2 && exit 10
