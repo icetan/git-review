@@ -3,17 +3,19 @@
 PREFIX="review"
 
 usage() {
-  echo "Usage: $0 [-ld] [-m <annotation message>] [review id] [ref]" 1>&2
+  echo "Usage: $0 [-acdfnv] [-m <annotation message>] [review id] [ref]" 1>&2
   exit 1
 }
 
 # Setup args
-while getopts "ldcvm:" opt; do
+while getopts "dcvafnm:" opt; do
 case $opt in
-  l) list=true;;
   d) dry=true;;
   c) close=true;;
   v) verbose=true;;
+  a) annotate="-a";;
+  f) force="-f";;
+  n) new=true;;
   m) message=$OPTARG;;
   *) usage
 esac
@@ -28,7 +30,7 @@ exclude="^$"
 
 git fetch --tags || exit 1
 
-if [ "$list" ]; then
+if [ ! "$new" ]; then
   [ ! "$id" ] && id="$id*"
   [ ! "$verbose" ] && exclude="$(git tag -l $PREFIX-\*-closed | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
   git tag -n -l $PREFIX-$id $PREFIX-${id}.\* | grep -vE "($exclude)"
@@ -46,11 +48,11 @@ else
 
   if [ ! "$dry" ]; then
     if [ "$message" ]; then
-      git tag -a -m "$message" $rtag $ref
+      git tag $force -a -m "$message" $rtag $ref
     else
-      git tag -a $rtag $ref
+      git tag $force $annotate $rtag $ref
     fi
-    ([ "$?" == "0" ] && git push --tags) || exit 2
+    ([ "$?" == "0" ] && git push --tags $force) || exit 2
   fi
   echo $rtag
 fi
