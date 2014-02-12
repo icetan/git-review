@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Send emails when a new review tag has been added.
+#
+# Configure the recipient emails in your repo with:
+# $ git config --add tinci.emails me@example.com,friend@example.com
+
+EMAILS=$(git config --get tinci.emails)
+[ ! "$EMAILS" ] && exit
+
+echo Sending review notification to $EMAILS
+
+read OLDSHA NEWSHA REF
+
+TAG=$(echo "$REF" | grep -oE '[^\/]*$')
+ID=$(echo "$TAG" | sed 's/^review-//;s/-closed$//')
+PARENT=$(echo "$ID" | sed 's/\.[^\.]*$//')
+CLOSED=$(echo $TAG | grep '-closed$')
+REPLY=$(echo $ID | grep '\.')
+REPO=$(basename `pwd`)
+
+if [ "$CLOSED" ]; then
+  git show --stat "$REF" | mail -s "tinci.review ($REPO): Review $ID closed" $EMAILS
+elif [ "$REPLY" ]; then
+  git show --stat "$REF" | mail -s "tinci.review ($REPO): New reply ($ID) to review $PARENT" $EMAILS
+else
+  git show --stat "$REF" | mail -s "tinci.review ($REPO): New code review $ID" $EMAILS
+fi
