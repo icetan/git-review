@@ -9,7 +9,7 @@ usage() {
 }
 
 # Setup args
-while getopts "acdfhlm:nprv" opt; do
+while getopts "acdfihlm:nprv" opt; do
 case $opt in
   a) annotate="-a";;
   c) close=true;;
@@ -71,9 +71,9 @@ elif [ "$create" ]; then
 
   if [ ! "$dry" ]; then
     if [ "$message" ]; then
-      git tag $force -a -m "$message" "$rtag" "$ref"
+      git tag $force -a -m "$message" "$rtag" $ref
     else
-      git tag $force $annotate "$rtag" "$ref"
+      git tag $force $annotate "$rtag" $ref
     fi
     ([ "$?" == "0" ] && git push --tags $force) || exit 2
   fi
