@@ -2,10 +2,19 @@
 
 # Send emails when a new review tag has been added.
 #
-# Configure the recipient emails in your repo with:
-# $ git config --add tinci.emails me@example.com,friend@example.com
+# Copy this script to `hooks/tinci.review` under your central GIT repo and make
+# sure it is executable.
+#
+# Then add it to the tinci config so that it runs when a review tag is pushed.
+#
+# $ git config --add tinci.review.match "review-.*"
+#
+# Configure the email recipients, use `,` to separate each email address when
+# using multiple recipients.
+#
+# $ git config --add tinci.review.emails "me@example.com,friend@example.com"
 
-EMAILS=$(git config --get tinci.emails)
+EMAILS=$(git config --get tinci.review.emails)
 [ ! "$EMAILS" ] && exit
 
 echo Sending review notification to $EMAILS
