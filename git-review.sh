@@ -1,23 +1,26 @@
 #!/bin/bash
 
+IAM=${0##*/}
 PREFIX="review"
 
 usage() {
-  echo "Usage: $0 [-acdfrv] [-m <annotation message>] [review id] [ref]" 1>&2
+  echo "Usage: $IAM [-dfhv] [ -l | -n | -r | -c ] [-a | -m <annotation message>] [id [ref]]" 1>&2
   exit 1
 }
 
 # Setup args
-while getopts "acdfrvm:" opt; do
+while getopts "acdfhlm:nrv" opt; do
 case $opt in
   a) annotate="-a";;
   c) close=true;;
   d) dry=true;;
   f) force="-f";;
-  r) request=true;;
+  l) list=true;;
+  m) message="$OPTARG";;
+  n) new=true;;
+  r) request=true; annotate="-a";;
   v) verbose=true;;
-  m) message=$OPTARG;;
-  *) usage
+  *|h) usage
 esac
 done
 
@@ -28,19 +31,29 @@ id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
 ref="${ARGS[1]}"
 exclude="^$"
 
+([ "$new" ] || ([ ! "$list" ] && [ "$id" ])) && new=true
+([ "$request" ] || [ "$close" ] || [ "$new" ]) && create=true
+
 git fetch --tags || exit 1
 
-if ([ "$request" ] || [ "$close" ]); then
+if [ "$create" ]; then
+  # Check if ID is required.
+  ([ "$request" ] || [ "$close" ]) && [ ! "$id" ] && \
+    echo "Error: You need to supply an ID." 1>&2 && exit 10
+  # Check if ID needs to exist.
+  ([ "$request" ] || [ "$close" ]) && [ ! "$(git tag -l $PREFIX-$id)" ] && \
+    echo "ID supplied does not exist." 1>&2 && exit 11
+  # Check if ID needs to be calculated.
+  ([ ! "$id" ] || [ "$request" ]) && calcid=true
+
   if [ "$close" ]; then
-    [ ! "$id" ] && echo "You need to supply an ID to close a review" 1>&2 && exit 10
-    [ ! "$(git tag -l $PREFIX-$id)" ] && echo "ID supplied does not exist" 1>&2 && exit 11
-    rtag=$PREFIX-$id-closed
-  elif ([ "$id" ] && [ ! "$(git tag -l $PREFIX-$id)" ]); then
-    rtag=$PREFIX-$id
-  else
-    [ "$id" ] && id="${id}."
-    rtag=$PREFIX-$id$(expr 0$(git tag -l $PREFIX-$id\* | sed -n "s/^$PREFIX-$id\([0-9]*\)$/\1/p" | sort -n | tail -n1) + 1)
+    id="$id-closed"
+  elif [ "$calcid" ]; then
+    [ "$request" ] && id="${id}."
+    id=$id$(expr 0$(git tag -l $PREFIX-$id\* | sed -n "s/^$PREFIX-$id\([0-9]*\)$/\1/p" | sort -n | tail -n1) + 1)
   fi
+
+  rtag=$PREFIX-$id
 
   if [ ! "$dry" ]; then
     if [ "$message" ]; then
@@ -52,7 +65,7 @@ if ([ "$request" ] || [ "$close" ]); then
   fi
   echo $rtag
 else
-  [ ! "$id" ] && id="$id*"
+  [ ! "$id" ] && id="*"
   [ ! "$verbose" ] && exclude="$(git tag -l $PREFIX-\*-closed | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
-  git tag -n -l $PREFIX-$id $PREFIX-${id}.\* | grep -vE "($exclude)"
+  git tag -n -l $PREFIX-$id $PREFIX-${id}-closed $PREFIX-${id}.\* | grep -vE "($exclude)"
 fi
