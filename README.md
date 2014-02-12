@@ -14,7 +14,7 @@ git commit -a -m "Some changes regarding Topic A."
 Request a review with an optional comment and review id.
 
 ```sh
-git review [-a | -m <comment>] -n
+git review [-a | -m <comment>] -i
 ```
 
 Or
@@ -26,7 +26,7 @@ git review [-a | -m <comment>] <id> [<ref>]
 List reviews and replies.
 
 ```sh
-git review [-l <id>]
+git review [-n] [-l <id>]
 ```
 
 Reply to a review.

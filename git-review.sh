@@ -4,20 +4,22 @@ IAM=${0##*/}
 PREFIX="review"
 
 usage() {
-  echo "Usage: $IAM [-dfhv] [ -l | -n | -r | -c ] [-a | -m <annotation message>] [id [ref]]" 1>&2
+  echo "Usage: $IAM [-dfhnv] [ -l | -i | -r | -c | -p ] [-a | -m <annotation message>] [id [ref]]" 1>&2
   exit 1
 }
 
 # Setup args
-while getopts "acdfhlm:nrv" opt; do
+while getopts "acdfhlm:nprv" opt; do
 case $opt in
   a) annotate="-a";;
   c) close=true;;
   d) dry=true;;
   f) force="-f";;
+  i) new=true;;
   l) list=true;;
   m) message="$OPTARG";;
-  n) new=true;;
+  n) more="-n";;
+  p) purge=true;;
   r) request=true; annotate="-a";;
   v) verbose=true;;
   *|h) usage
@@ -34,14 +36,26 @@ exclude="^$"
 ([ "$new" ] || ([ ! "$list" ] && [ "$id" ])) && new=true
 ([ "$request" ] || [ "$close" ] || [ "$new" ]) && create=true
 
+list() {
+  [ ! "$1" ] && _id="*" || _id="$1"
+  [ "$2" ] && _more="-n"
+  git tag $_more -l "$PREFIX-$_id" "$PREFIX-${_id}-closed" "$PREFIX-${_id}.*"
+}
+
 git fetch --tags || exit 1
 
-if [ "$create" ]; then
+if [ "$purge" ]; then
+  todelete=$(list "$id" | paste -s -d ' ' -)
+  [ ! "$todelete" ] && echo "No tags to remove." 1>&2 && exit 12
+  [ ! "$force" ] && echo "If you are sure you want to remove the following tags use -f: $todelete" 1>&2 && exit 13
+  git tag -d $todelete
+  git push --delete origin $todelete
+elif [ "$create" ]; then
   # Check if ID is required.
   ([ "$request" ] || [ "$close" ]) && [ ! "$id" ] && \
     echo "Error: You need to supply an ID." 1>&2 && exit 10
   # Check if ID needs to exist.
-  ([ "$request" ] || [ "$close" ]) && [ ! "$(git tag -l $PREFIX-$id)" ] && \
+  ([ "$request" ] || [ "$close" ]) && [ ! "$(git tag -l "$PREFIX-$id")" ] && \
     echo "ID supplied does not exist." 1>&2 && exit 11
   # Check if ID needs to be calculated.
   ([ ! "$id" ] || [ "$request" ]) && calcid=true
@@ -50,22 +64,21 @@ if [ "$create" ]; then
     id="$id-closed"
   elif [ "$calcid" ]; then
     [ "$request" ] && id="${id}."
-    id=$id$(expr 0$(git tag -l $PREFIX-$id\* | sed -n "s/^$PREFIX-$id\([0-9]*\)$/\1/p" | sort -n | tail -n1) + 1)
+    id="$id$(expr 0$(git tag -l "$PREFIX-$id*" | sed -n "s/^$PREFIX-$id\([0-9]*\)$/\1/p" | sort -n | tail -n1) + 1)"
   fi
 
-  rtag=$PREFIX-$id
+  rtag="$PREFIX-$id"
 
   if [ ! "$dry" ]; then
     if [ "$message" ]; then
-      git tag $force -a -m "$message" $rtag $ref
+      git tag $force -a -m "$message" "$rtag" "$ref"
     else
-      git tag $force $annotate $rtag $ref
+      git tag $force $annotate "$rtag" "$ref"
     fi
     ([ "$?" == "0" ] && git push --tags $force) || exit 2
   fi
-  echo $rtag
+  echo "$rtag"
 else
-  [ ! "$id" ] && id="*"
-  [ ! "$verbose" ] && exclude="$(git tag -l $PREFIX-\*-closed | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
-  git tag -n -l $PREFIX-$id $PREFIX-${id}-closed $PREFIX-${id}.\* | grep -vE "($exclude)"
+  [ ! "$verbose" ] && exclude="$(git tag -l "$PREFIX-*-closed" | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
+  list "$id" $more | grep -vE "($exclude)"
 fi
