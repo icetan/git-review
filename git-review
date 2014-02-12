@@ -31,7 +31,6 @@ ARGS=(${@:$OPTIND})
 id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
 [ "$id" == "-" ] && id=""
 ref="${ARGS[1]}"
-exclude="^$"
 
 ([ "$new" ] || ([ ! "$list" ] && [ "$id" ])) && new=true
 ([ "$request" ] || [ "$close" ] || [ "$new" ]) && create=true
@@ -80,5 +79,6 @@ elif [ "$create" ]; then
   echo "$rtag"
 else
   [ ! "$verbose" ] && exclude="$(git tag -l "$PREFIX-*-closed" | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
+  [ ! "$exclude" ] && exclude="^$"
   list "$id" $more | grep -vE "($exclude)"
 fi
