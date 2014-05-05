@@ -78,7 +78,7 @@ elif [ "$create" ]; then
   fi
   echo "$rtag"
 else
-  [ ! "$verbose" ] && exclude="$(git tag -l "$PREFIX-*-closed" | sed "s/\($PREFIX-.*\)-closed/\^\1/" | paste -s -d '|' -)"
+  [ ! "$verbose" ] && exclude="$(git tag -l "$PREFIX-*-closed" | sed "s/\($PREFIX-.*\)-closed/\^\1([-. ]|$)/" | paste -s -d '|' -)"
   [ ! "$exclude" ] && exclude="^$"
   list "$id" $more | grep -vE "($exclude)"
 fi
