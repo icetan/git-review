@@ -28,9 +28,12 @@ done
 
 ARGS=(${@:$OPTIND})
 
-id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
-[ "$id" == "-" ] && id=""
-ref="${ARGS[1]}"
+if [ "$new" ]; then
+  ref="${ARGS[0]}"
+else
+  id=$(echo ${ARGS[0]} | sed "s/^$PREFIX-//")
+  ref="${ARGS[1]}"
+fi
 
 ([ "$new" ] || ([ ! "$list" ] && [ "$id" ])) && new=true
 ([ "$request" ] || [ "$close" ] || [ "$new" ]) && create=true
