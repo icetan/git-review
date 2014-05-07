@@ -20,7 +20,7 @@ case $opt in
   m) message="$OPTARG";;
   n) more="-n";;
   p) purge=true;;
-  r) request=true; annotate="-a";;
+  r) request=true;;
   v) verbose=true;;
   *|h) usage
 esac
