@@ -15,19 +15,20 @@ directory which is in your `$PATH`.
 
 ## Usage
 
-Request a review with an optional comment and review id.
+Request a review with an optional comment.
 
 ```sh
-git review [-a | -m <comment>] -i
+git review [-a | -m <comment>] -i [<ref>]
 ```
 
-Or
+Or specify a review id and omitting `-i`.
 
 ```sh
 git review [-a | -m <comment>] <id> [<ref>]
 ```
 
-List reviews and replies.
+List reviews and replies. `-n` will list annotations or if not available the
+associated commit message.
 
 ```sh
 git review [-n] [-l <id>]
@@ -36,13 +37,13 @@ git review [-n] [-l <id>]
 Reply to a review.
 
 ```sh
-git review -r [-m <comment>] <id>
+git review -r [-a | -m <comment>] <id> [<ref>]
 ```
 
 Close a review.
 
 ```sh
-git review -c [-a | -m <comment>] <id>
+git review -c [-a | -m <comment>] <id> [<ref>]
 ```
 
 ## Example review request workflow
