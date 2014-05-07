@@ -84,7 +84,7 @@ Select a review of interest and show a diff between the tagged commit and the
 The GIT tag name is the review number with `review-` in front of it.
 
 ```sh
-git diff master...review-36
+git show master..review-36
 ```
 
 Reply with comments about the code:
