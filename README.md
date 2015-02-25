@@ -93,8 +93,27 @@ Reply with comments about the code:
 git review -r -m"Needs moar pasta." 36
 ```
 
+Or if more detailed comments are needed, checkout the review branch and commit
+changes to the code in a temporary branch with code comments and other possible
+corrections.
+
+```sh
+git checkout -b tmp-branch review-36
+*** edit the code ***
+git commit -m "Added code review comments." -a
+git review -r 36
+```
+
 Wait for a reply or a new commit and repeat the last step until you are
 satisfied with the fixes.
+
+```sh
+git review -n -l 23
+... review-23
+... review-23.1      <--- Your reply to 23
+... review-23.1.1    <--- Reply to your reply
+git show review-23.1.1
+```
 
 Now you can close the review to hide it from the pending list. An optional
 comment can be submitted with `-m`.
